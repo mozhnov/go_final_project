@@ -52,7 +52,7 @@ func main() {
 	mux.HandleFunc("/api/task", handler.PostGetPutDeleteTask)
 	mux.HandleFunc("/api/tasks", handler.GetTasksSearch)
 	mux.HandleFunc("/api/task/done", handler.DoneTaskId)
-	mux.HandleFunc("api/nextdate", handler.NextData)
+	mux.HandleFunc("/api/nextdate", handler.NextData)
 	err = http.ListenAndServe(web_server_port, mux)
 	if err != nil {
 		panic(err)

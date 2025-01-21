@@ -22,7 +22,7 @@ type HandlerRepository interface {
 	SearchTask(search string) []structurs.Tasks
 	PutTaskId(t structurs.Tasks) error
 	DeleteTaskId(id string) error
-	NextDate(now time.Time, date string, repeat string) (string, error)
+	NextDate(d structurs.DataValid) (string, error)
 }
 
 func NewHandler(repo HandlerRepository) Handler {
@@ -49,6 +49,7 @@ func (h Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		json.NewEncoder(w).Encode(respErr)
 	}
+
 	id, errAdd := h.Repo.AddTask(TaskAdd)
 	strId := strconv.Itoa(id)
 	respID := make(map[string]string)
@@ -61,6 +62,7 @@ func (h Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		json.NewEncoder(w).Encode(respErr)
 	}
+
 }
 func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
@@ -141,7 +143,9 @@ func (h Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) DoneTaskId(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
+	nowNow := time.Now()
+	format := "20060102"
+	now := nowNow.Format(format)
 	id := r.URL.Query().Get("id")
 	task, err := h.Repo.GetTaskId(id)
 	if err != nil {
@@ -150,6 +154,10 @@ func (h Handler) DoneTaskId(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		json.NewEncoder(w).Encode(respErr)
 	}
+	var nextDate structurs.DataValid
+	nextDate.Data = task.Date
+	nextDate.Now = now
+	nextDate.Repeat = task.Repeat
 	if task.Repeat == "" {
 		err := h.Repo.DeleteTaskId(id)
 		if err != nil {
@@ -164,7 +172,10 @@ func (h Handler) DoneTaskId(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(out)
 		}
 	} else {
-		data, err := h.Repo.NextDate(now, task.Date, task.Repeat)
+		fmt.Println("eeeeeeeee")
+		data, err := h.Repo.NextDate(nextDate)
+		fmt.Println("tttt", data)
+
 		if err != nil {
 			respErr := make(map[string]string)
 			respErr["error"] = err.Error()
@@ -197,18 +208,12 @@ func (h Handler) DeleteTaskID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (h Handler) NextData(w http.ResponseWriter, r *http.Request) {
-	nowString := r.URL.Query().Get("now")
-	timeFormat := "20060102"
-	now, err := time.Parse(timeFormat, nowString)
-	if err != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = err.Error()
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
-	}
-	date := r.URL.Query().Get("date")
-	repeat := r.URL.Query().Get("repeat")
-	answer, err := h.Repo.NextDate(now, date, repeat)
+	var nextDate structurs.DataValid
+	nextDate.Now = r.URL.Query().Get("now")
+	nextDate.Data = r.URL.Query().Get("date")
+	nextDate.Repeat = r.URL.Query().Get("repeat")
+	nextdate, err := h.Repo.NextDate(nextDate)
+	answer, _ := strconv.Atoi(nextdate)
 	if err != nil {
 		respErr := make(map[string]string)
 		respErr["error"] = err.Error()

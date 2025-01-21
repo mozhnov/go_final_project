@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"go_final_project/function"
 	"go_final_project/structurs"
 	"log"
@@ -53,10 +54,9 @@ func (s DB) CreateTable(DBFile string) {
 }
 func (s DB) AddTask(t structurs.Task) (int, error) {
 	input := function.DataCheck(t.Date)
-	layout := "20060102"
 	t.Date = input
 	timeNow := time.Now()
-	dateNow := timeNow.Format(layout)
+	dateNow := timeNow.Format("20060102")
 	if t.Date < dateNow {
 		t.Date = dateNow
 	}
@@ -159,49 +159,62 @@ func (s DB) DeleteTaskId(id string) error {
 	}
 	return nil
 }
-func (s DB) NextDate(now time.Time, date string, repeat string) (string, error) {
+
+func (s DB) NextDate(d structurs.DataValid) (string, error) {
 	format := "20060102"
-	dateTimeFormat, err := time.Parse(format, date)
+	date, err := time.Parse(format, d.Data)
 	if err != nil {
-		log.Println(err)
+		log.Println("date", err)
+		return "", err
 	}
+	now, err := time.Parse(format, d.Now)
+	if err != nil {
+		log.Println("now", err)
+		return "", err
+	}
+	repeat := d.Repeat
+	fmt.Println("now", now, "date", date, "repiat", repeat)
+
 	var yearAdd time.Time
-	if dateTimeFormat.After(now) && repeat == "y" {
-		yearAdd = dateTimeFormat.AddDate(1, 0, 0)
-	} else if dateTimeFormat.After(now) && strings.Contains(repeat, "d") {
+	if date.After(now) && repeat == "y" && len(repeat) == 1 {
+		yearAdd = date.AddDate(1, 0, 0)
+	} else if date.After(now) && strings.Contains(repeat, "d") && len(repeat) > 2 {
 		repeatSplit := strings.Split(repeat, " ")
 		day := repeatSplit[1]
-		i, err := strconv.Atoi(day)
-		if err != nil {
-			log.Println(err)
+		i, _ := strconv.Atoi(day)
+		if i < 401 && i > 0 {
+			Add := date.AddDate(0, 0, i)
+			dayAdd := Add.Format(format)
+			return dayAdd, err
+		} else {
+			return "err", err
 		}
-		Add := dateTimeFormat.AddDate(0, 0, i)
-		dayAdd := Add.Format(format)
-		return dayAdd, err
-	} else if dateTimeFormat.Before(now) && repeat == "y" {
+	} else if date.Before(now) && repeat == "y" && len(repeat) == 1 {
 		var yearAddbefore string
-		for dateTimeFormat.Before(now) {
-			Add := dateTimeFormat.AddDate(1, 0, 0)
-			dateTimeFormat = Add
+		for date.Before(now) {
+			Add := date.AddDate(1, 0, 0)
+			date = Add
 			yearAddbefore = Add.Format(format)
 		}
 		return yearAddbefore, err
-	} else if dateTimeFormat.Before(now) && strings.Contains(repeat, "d") {
+	} else if date.Before(now) && strings.Contains(repeat, "d") && len(repeat) > 2 {
 		repeatSplit := strings.Split(repeat, " ")
 		day := repeatSplit[1]
 		i, err := strconv.Atoi(day)
-		if err != nil {
-			log.Println(err)
+		if i < 401 && i > 0 {
+			var dayAddbefore string
+			for date.Before(now) {
+				Add := date.AddDate(0, 0, i)
+				date = Add
+				dayAddbefore = Add.Format(format)
+			}
+			return dayAddbefore, err
+		} else {
+			return "err", err
 		}
-		var dayAddbefore string
-		for dateTimeFormat.Before(now) {
-			Add := dateTimeFormat.AddDate(0, 0, i)
-			dateTimeFormat = Add
-			dayAddbefore = Add.Format(format)
-		}
-		return dayAddbefore, err
-	} else {
-		return "", err
+
 	}
-	return yearAdd.Format(format), err
+	year := yearAdd.Format(format)
+	fmt.Println("year", year)
+	return year, err
 }

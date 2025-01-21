@@ -22,3 +22,8 @@ type Tasks struct {
 }
 type Empty struct {
 }
+type DataValid struct {
+	Now    string
+	Data   string
+	Repeat string
+}
