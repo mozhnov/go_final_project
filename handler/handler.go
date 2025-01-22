@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"go_final_project/function"
 	"go_final_project/structurs"
 	"net/http"
 	"strconv"
@@ -42,25 +43,31 @@ func (h Handler) PostGetPutDeleteTask(w http.ResponseWriter, r *http.Request) {
 }
 func (h Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 	var TaskAdd structurs.Task
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
 	err := json.NewDecoder(r.Body).Decode(&TaskAdd)
 	if err != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = err.Error()
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 	}
-
-	id, errAdd := h.Repo.AddTask(TaskAdd)
-	strId := strconv.Itoa(id)
-	respID := make(map[string]string)
-	respID["id"] = strId
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	json.NewEncoder(w).Encode(respID)
-	if errAdd != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = "Не указан заголовок задачи"
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
+	date, _ := function.DataCheck(TaskAdd.Date)
+	// if err != nil {
+	// 	json.NewEncoder(w).Encode(map[string]string{"error": "Не верный формат даты"})
+	// }
+	repeat, _ := function.RepeatChek(TaskAdd.Repeat)
+	// if err != nil {
+	// 	json.NewEncoder(w).Encode(map[string]string{"error": "Не верный формат повторения"})
+	// }
+	TaskAdd.Repeat = repeat
+	TaskAdd.Date = date
+	if TaskAdd.Title != "" && TaskAdd.Date != "" && TaskAdd.Repeat != "0" {
+		id, errAdd := h.Repo.AddTask(TaskAdd)
+		respId := strconv.Itoa(id)
+		json.NewEncoder(w).Encode(map[string]string{"id": respId})
+		if errAdd != nil {
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		}
+	} else {
+		json.NewEncoder(w).Encode(map[string]string{"error": "Не указан заголовок задачи"})
 	}
 
 }
