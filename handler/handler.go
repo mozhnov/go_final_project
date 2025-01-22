@@ -44,19 +44,13 @@ func (h Handler) PostGetPutDeleteTask(w http.ResponseWriter, r *http.Request) {
 func (h Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 	var TaskAdd structurs.Task
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
 	err := json.NewDecoder(r.Body).Decode(&TaskAdd)
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
 	}
 	date, _ := function.DataCheck(TaskAdd.Date)
-	// if err != nil {
-	// 	json.NewEncoder(w).Encode(map[string]string{"error": "Не верный формат даты"})
-	// }
 	repeat, _ := function.RepeatChek(TaskAdd.Repeat)
-	// if err != nil {
-	// 	json.NewEncoder(w).Encode(map[string]string{"error": "Не верный формат повторения"})
-	// }
 	TaskAdd.Repeat = repeat
 	TaskAdd.Date = date
 	if TaskAdd.Title != "" && TaskAdd.Date != "" && TaskAdd.Repeat != "0" {
@@ -64,17 +58,19 @@ func (h Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 		respId := strconv.Itoa(id)
 		json.NewEncoder(w).Encode(map[string]string{"id": respId})
 		if errAdd != nil {
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			json.NewEncoder(w).Encode(map[string]string{"error": errAdd.Error()})
+			return
 		}
 	} else {
 		json.NewEncoder(w).Encode(map[string]string{"error": "Не указан заголовок задачи"})
+		return
 	}
-
 }
 func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
 	if search != "" {
-		searchData := h.Repo.SearchTask(search)
+		input := function.SearcCheck(search)
+		searchData := h.Repo.SearchTask(input)
 		respSearch := make(map[string][]structurs.Tasks)
 		respSearch["tasks"] = searchData
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -84,6 +80,7 @@ func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
 			respErr["error"] = err.Error()
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			json.NewEncoder(w).Encode(respErr)
+			return
 		}
 	} else {
 		tasks, err := h.Repo.GetTasks()
@@ -96,6 +93,7 @@ func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
 				respErr := make(map[string]string)
 				respErr["error"] = err.Error()
 				json.NewEncoder(w).Encode(respErr)
+				return
 			}
 
 		} else {
@@ -108,6 +106,7 @@ func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
 				respErr := make(map[string]string)
 				respErr["error"] = err.Error()
 				json.NewEncoder(w).Encode(respErr)
+				return
 			}
 		}
 	}
@@ -116,37 +115,34 @@ func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
 func (h Handler) GetTaskId(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	task, err := h.Repo.GetTaskId(id)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	json.NewEncoder(w).Encode(task)
+	resp := make(map[string]string)
 	if err != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = err.Error()
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
+		resp["error"] = "Задача не найдена"
+		json.NewEncoder(w).Encode(resp)
+		return
 	}
+	json.NewEncoder(w).Encode(task)
+	w.Header().Set("Content-Type", "application/json")
 }
 
 func (h Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 	var TaskChange structurs.Tasks
+	resp := make(map[string]string)
 	err := json.NewDecoder(r.Body).Decode(&TaskChange)
 	if err != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = err.Error()
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
+		resp["error"] = err.Error()
+		json.NewEncoder(w).Encode(resp)
+		return
 	}
 	err = h.Repo.PutTaskId(TaskChange)
-
 	if err != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = "Не изменилась"
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
-	} else {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		var out structurs.Empty
-		json.NewEncoder(w).Encode(out)
+		resp["error"] = "Задача не найдена"
+		json.NewEncoder(w).Encode(resp)
+		return
 	}
+	out := &structurs.Empty{}
+	json.NewEncoder(w).Encode(out)
+	w.Header().Set("Content-Type", "application/json")
 }
 
 func (h Handler) DoneTaskId(w http.ResponseWriter, r *http.Request) {

@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"go_final_project/function"
 	"go_final_project/structurs"
 	"log"
 	"os"
@@ -53,7 +52,6 @@ func (s DB) CreateTable(DBFile string) {
 	}
 }
 func (s DB) AddTask(t structurs.Task) (int, error) {
-	fmt.Println("t.data", t.Date)
 	res, err := s.db.Exec("INSERT INTO scheduler (date, title, comment, repeat) VALUES (:date, :title, :comment, :repeat);",
 		sql.Named("date", t.Date),
 		sql.Named("title", t.Title),
@@ -97,7 +95,7 @@ func (s DB) GetTaskId(id string) (structurs.Tasks, error) {
 	return p, err
 }
 func (s DB) SearchTask(search string) []structurs.Tasks {
-	input, _ := function.DataCheck(search)
+	input := search
 	rows, err := s.db.Query("SELECT * FROM scheduler WHERE id LIKE CONCAT('%', :input, '%') OR date LIKE CONCAT('%', :input, '%') OR title LIKE CONCAT('%', :input, '%') OR comment LIKE CONCAT('%', :input, '%') ORDER BY date DESC;",
 		sql.Named("input", input))
 	if err != nil {
@@ -125,8 +123,6 @@ func (s DB) SearchTask(search string) []structurs.Tasks {
 
 }
 func (s DB) PutTaskId(t structurs.Tasks) error {
-	input, _ := function.DataCheck(t.Date)
-	t.Date = input
 	_, err := s.db.Exec("UPDATE scheduler SET date=:date, title=:title, comment=:comment, repeat=:repeat WHERE id=:id;",
 		sql.Named("id", t.Id),
 		sql.Named("date", t.Date),

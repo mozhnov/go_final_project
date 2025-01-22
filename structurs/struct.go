@@ -21,6 +21,7 @@ type Tasks struct {
 	Repeat  string `json:"repeat"`
 }
 type Empty struct {
+	Out string `json:"out,omitempty"`
 }
 type DataValid struct {
 	Now    string

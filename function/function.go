@@ -14,26 +14,44 @@ import (
 
 func DataCheck(input string) (string, error) {
 	var out string
-	format := "20060102"
-	date, err := time.Parse(format, input)
-	if err != nil {
-		log.Println(err)
-		return "", err
-	}
-	a := date.Format("20060102")
-	if a == "00010101" {
-		log.Println(err)
-		return "", nil
+	if input == "" {
+		today := time.Now()
+		toDay := today.Format("20060102")
+		out = toDay
 	} else {
-		timeNow := time.Now()
-		dateNow := timeNow.Format("20060102")
-		if a <= dateNow || input == "" {
-			out = dateNow
-		} else if a > dateNow {
-			out = a
+		format := "20060102"
+		date, err := time.Parse(format, input)
+		if err != nil {
+			log.Println(err)
+			return "", err
+		}
+		a := date.Format("20060102")
+		if a == "00010101" {
+			log.Println(err)
+			return "", nil
+		} else {
+			timeNow := time.Now()
+			dateNow := timeNow.Format("20060102")
+			if a <= dateNow || input == "" {
+				out = dateNow
+			} else if a > dateNow {
+				out = a
+			}
 		}
 	}
 	return out, nil
+}
+func SearcCheck(search string) string {
+	out := search
+	dateLay := "02.01.2006"
+	layout := "20060102"
+	date, err := time.Parse(dateLay, search)
+	search = date.Format(layout)
+
+	if err != nil {
+		return out
+	}
+	return search
 }
 func RepeatChek(repeat string) (string, error) {
 	var out string
