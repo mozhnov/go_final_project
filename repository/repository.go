@@ -57,6 +57,7 @@ func (s DB) AddTask(t structurs.Task) (int, error) {
 		sql.Named("title", t.Title),
 		sql.Named("comment", t.Comment),
 		sql.Named("repeat", t.Repeat))
+	fmt.Println("metod AddTask", err)
 	if err != nil {
 		return 0, err
 	}
@@ -123,6 +124,7 @@ func (s DB) SearchTask(search string) []structurs.Tasks {
 
 }
 func (s DB) PutTaskId(t structurs.Tasks) error {
+	fmt.Println("putrepozitory", "id", t.Id, "date", t.Date, t.Title, t.Comment, t.Repeat)
 	_, err := s.db.Exec("UPDATE scheduler SET date=:date, title=:title, comment=:comment, repeat=:repeat WHERE id=:id;",
 		sql.Named("id", t.Id),
 		sql.Named("date", t.Date),
@@ -144,61 +146,60 @@ func (s DB) DeleteTaskId(id string) error {
 	return nil
 }
 
-func (s DB) NextDate(d structurs.DataValid) (string, error) {
+func (s DB) NextDate(now string, date string, repeat string) (string, error) {
 	format := "20060102"
-	date, err := time.Parse(format, d.Data)
+	dateN, err := time.Parse(format, date)
 	if err != nil {
-		log.Println("date", err)
 		return "", err
 	}
-	log.Println("yyyyyyy", d.Now)
-	now, err := time.Parse(format, d.Now)
-	log.Println("qqqq", now)
+	nowN, err := time.Parse(format, now)
 	if err != nil {
-		log.Println("nowwww", err)
 		return "", err
 	}
-	repeat := d.Repeat
-	fmt.Println("now", now, "date", date, "repiat", repeat)
 
 	var yearAdd time.Time
-	if date.After(now) && repeat == "y" && len(repeat) == 1 {
-		yearAdd = date.AddDate(1, 0, 0)
-	} else if date.After(now) && strings.Contains(repeat, "d") && len(repeat) > 2 {
+	if (dateN.After(nowN) || dateN == nowN) && repeat == "y" && len(repeat) == 1 {
+		yearAdd = dateN.AddDate(1, 0, 0)
+	} else if (dateN.After(nowN) || dateN == nowN) && strings.Contains(repeat, "d") && len(repeat) > 2 {
 		repeatSplit := strings.Split(repeat, " ")
 		day := repeatSplit[1]
-		i, _ := strconv.Atoi(day)
+		i, err := strconv.Atoi(day)
+		if err != nil {
+			return "err", err
+		}
 		if i < 401 && i > 0 {
-			Add := date.AddDate(0, 0, i)
+			Add := dateN.AddDate(0, 0, i)
 			dayAdd := Add.Format(format)
 			return dayAdd, err
 		} else {
 			return "err", err
 		}
-	} else if date.Before(now) && repeat == "y" && len(repeat) == 1 {
+	} else if dateN.Before(nowN) && repeat == "y" && len(repeat) == 1 {
 		var yearAddbefore string
-		for date.Before(now) {
-			Add := date.AddDate(1, 0, 0)
-			date = Add
+		for dateN.Before(nowN) {
+			Add := dateN.AddDate(1, 0, 0)
+			dateN = Add
 			yearAddbefore = Add.Format(format)
 		}
 		return yearAddbefore, err
-	} else if date.Before(now) && strings.Contains(repeat, "d") && len(repeat) > 2 {
+	} else if dateN.Before(nowN) && strings.Contains(repeat, "d") && len(repeat) > 2 {
 		repeatSplit := strings.Split(repeat, " ")
 		day := repeatSplit[1]
 		i, err := strconv.Atoi(day)
+		if err != nil {
+			return "err", err
+		}
 		if i < 401 && i > 0 {
 			var dayAddbefore string
-			for date.Before(now) {
-				Add := date.AddDate(0, 0, i)
-				date = Add
+			for dateN.Before(nowN) {
+				Add := dateN.AddDate(0, 0, i)
+				dateN = Add
 				dayAddbefore = Add.Format(format)
 			}
 			return dayAddbefore, err
 		} else {
 			return "err", err
 		}
-
 	}
 	year := yearAdd.Format(format)
 	fmt.Println("year", year)

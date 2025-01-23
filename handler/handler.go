@@ -23,7 +23,7 @@ type HandlerRepository interface {
 	SearchTask(search string) []structurs.Tasks
 	PutTaskId(t structurs.Tasks) error
 	DeleteTaskId(id string) error
-	NextDate(d structurs.DataValid) (string, error)
+	NextDate(now string, data string, repeat string) (string, error)
 }
 
 func NewHandler(repo HandlerRepository) Handler {
@@ -56,6 +56,8 @@ func (h Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 	if TaskAdd.Title != "" && TaskAdd.Date != "" && TaskAdd.Repeat != "0" {
 		id, errAdd := h.Repo.AddTask(TaskAdd)
 		respId := strconv.Itoa(id)
+		fmt.Println(id)
+		fmt.Println("taskadd", errAdd)
 		json.NewEncoder(w).Encode(map[string]string{"id": respId})
 		if errAdd != nil {
 			json.NewEncoder(w).Encode(map[string]string{"error": errAdd.Error()})
@@ -119,6 +121,7 @@ func (h Handler) GetTaskId(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		resp["error"] = "Задача не найдена"
 		json.NewEncoder(w).Encode(resp)
+		w.Header().Set("Content-Type", "application/json")
 		return
 	}
 	json.NewEncoder(w).Encode(task)
@@ -128,70 +131,83 @@ func (h Handler) GetTaskId(w http.ResponseWriter, r *http.Request) {
 func (h Handler) PutTask(w http.ResponseWriter, r *http.Request) {
 	var TaskChange structurs.Tasks
 	resp := make(map[string]string)
+
 	err := json.NewDecoder(r.Body).Decode(&TaskChange)
 	if err != nil {
 		resp["error"] = err.Error()
 		json.NewEncoder(w).Encode(resp)
+		w.Header().Set("Content-Type", "application/json")
 		return
 	}
-	err = h.Repo.PutTaskId(TaskChange)
-	if err != nil {
+	id, errA := function.IdCheck(TaskChange.Id)
+	date, _ := function.DataCheck(TaskChange.Date)
+	repeat, _ := function.RepeatChek(TaskChange.Repeat)
+	TaskChange.Id = id
+	TaskChange.Repeat = repeat
+	TaskChange.Date = date
+	if TaskChange.Title != "" && TaskChange.Date != "" && TaskChange.Repeat != "0" {
+		err = h.Repo.PutTaskId(TaskChange)
+		if err != nil || errA != nil {
+			resp["error"] = "Задача не найдена"
+			json.NewEncoder(w).Encode(resp)
+			w.Header().Set("Content-Type", "application/json")
+			return
+		}
+		out := &structurs.Empty{}
+		json.NewEncoder(w).Encode(out)
+		w.Header().Set("Content-Type", "application/json")
+	} else {
 		resp["error"] = "Задача не найдена"
 		json.NewEncoder(w).Encode(resp)
+		w.Header().Set("Content-Type", "application/json")
 		return
 	}
-	out := &structurs.Empty{}
-	json.NewEncoder(w).Encode(out)
-	w.Header().Set("Content-Type", "application/json")
 }
 
 func (h Handler) DoneTaskId(w http.ResponseWriter, r *http.Request) {
+	resp := make(map[string]string)
 	nowNow := time.Now()
 	format := "20060102"
 	now := nowNow.Format(format)
 	id := r.URL.Query().Get("id")
 	task, err := h.Repo.GetTaskId(id)
 	if err != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = err.Error()
+		resp["error"] = err.Error()
+		json.NewEncoder(w).Encode(resp)
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
+		return
 	}
-	var nextDate structurs.DataValid
-	nextDate.Data = task.Date
-	nextDate.Now = now
-	nextDate.Repeat = task.Repeat
+	date := task.Date
+	repeat := task.Repeat
 	if task.Repeat == "" {
 		err := h.Repo.DeleteTaskId(id)
 		if err != nil {
-			respErr := make(map[string]string)
-			respErr["error"] = "Не завершилась"
+			resp["error"] = "Не завершилась"
+			json.NewEncoder(w).Encode(resp)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			json.NewEncoder(w).Encode(respErr)
-			fmt.Println("err", respErr)
+			return
 		} else {
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			var out structurs.Empty
+			out := &structurs.Empty{}
 			json.NewEncoder(w).Encode(out)
+			w.Header().Set("Content-Type", "application/json")
 		}
 	} else {
-		fmt.Println("eeeeeeeee")
-		data, err := h.Repo.NextDate(nextDate)
-		fmt.Println("tttt", data)
-
+		fmt.Println("nowh", now, "dateh", date, "repiath", repeat)
+		data, err := h.Repo.NextDate(now, date, repeat)
 		if err != nil {
-			respErr := make(map[string]string)
-			respErr["error"] = err.Error()
+			resp["error"] = err.Error()
+			json.NewEncoder(w).Encode(resp)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			json.NewEncoder(w).Encode(respErr)
+			return
 		}
 		task.Date = data
 		err = h.Repo.PutTaskId(task)
 		if err != nil {
-			respErr := make(map[string]string)
-			respErr["error"] = err.Error()
+			resp["error"] = err.Error()
+			json.NewEncoder(w).Encode(resp)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			json.NewEncoder(w).Encode(respErr)
+			return
+
 		}
 	}
 }
@@ -211,19 +227,19 @@ func (h Handler) DeleteTaskID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (h Handler) NextData(w http.ResponseWriter, r *http.Request) {
-	var nextDate structurs.DataValid
-	nextDate.Now = r.URL.Query().Get("now")
-	nextDate.Data = r.URL.Query().Get("date")
-	nextDate.Repeat = r.URL.Query().Get("repeat")
-	nextdate, err := h.Repo.NextDate(nextDate)
+	resp := make(map[string]string)
+	now := r.URL.Query().Get("now")
+	date := r.URL.Query().Get("date")
+	repeat := r.URL.Query().Get("repeat")
+	nextdate, err := h.Repo.NextDate(now, date, repeat)
 	answer, _ := strconv.Atoi(nextdate)
 	if err != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = err.Error()
+		resp["error"] = err.Error()
+		json.NewEncoder(w).Encode(resp)
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
+		return
 	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	json.NewEncoder(w).Encode(answer)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 }

@@ -23,8 +23,3 @@ type Tasks struct {
 type Empty struct {
 	Out string `json:"out,omitempty"`
 }
-type DataValid struct {
-	Now    string
-	Data   string
-	Repeat string
-}

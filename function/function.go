@@ -2,6 +2,7 @@ package function
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -75,6 +76,18 @@ func RepeatChek(repeat string) (string, error) {
 	} else {
 		return "0", nil
 	}
+	return out, nil
+}
+func IdCheck(id string) (string, error) {
+	i, err := strconv.Atoi(id)
+	var out string
+	if err != nil {
+		return "", err
+	} else if i > 1000 {
+		errS := errors.New("invalid syntax")
+		return "", errS
+	}
+	out = strconv.Itoa(i)
 	return out, nil
 }
 func DBconnect() *sql.DB {
