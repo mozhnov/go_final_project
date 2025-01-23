@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"go_final_project/function"
 	"go_final_project/structurs"
 	"net/http"
@@ -14,13 +13,13 @@ type Handler struct {
 	Repo HandlerRepository
 }
 type HandlerRepository interface {
-	AddTask(t structurs.Task) (int, error)
-	AddDB(DBFile string)
+	AddDB(DBFile string) error
 	CheckTable(DBFile string) error
-	CreateTable(DBFile string)
+	CreateTable(DBFile string) error
+	AddTask(t structurs.Task) (int, error)
 	GetTasks() ([]structurs.Tasks, error)
 	GetTaskId(id string) (structurs.Tasks, error)
-	SearchTask(search string) []structurs.Tasks
+	SearchTask(input string) ([]structurs.Tasks, error)
 	PutTaskId(t structurs.Tasks) error
 	DeleteTaskId(id string) error
 	NextDate(now string, data string, repeat string) (string, error)
@@ -42,11 +41,14 @@ func (h Handler) PostGetPutDeleteTask(w http.ResponseWriter, r *http.Request) {
 
 }
 func (h Handler) PostTask(w http.ResponseWriter, r *http.Request) {
+	resp := make(map[string]string)
 	var TaskAdd structurs.Task
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	err := json.NewDecoder(r.Body).Decode(&TaskAdd)
 	if err != nil {
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		resp["error"] = err.Error()
+		json.NewEncoder(w).Encode(resp)
+		w.Header().Set("Content-Type", "application/json")
 		return
 	}
 	date, _ := function.DataCheck(TaskAdd.Date)
@@ -56,32 +58,41 @@ func (h Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 	if TaskAdd.Title != "" && TaskAdd.Date != "" && TaskAdd.Repeat != "0" {
 		id, errAdd := h.Repo.AddTask(TaskAdd)
 		respId := strconv.Itoa(id)
-		fmt.Println(id)
-		fmt.Println("taskadd", errAdd)
-		json.NewEncoder(w).Encode(map[string]string{"id": respId})
+		resp["id"] = respId
+		json.NewEncoder(w).Encode(resp)
 		if errAdd != nil {
-			json.NewEncoder(w).Encode(map[string]string{"error": errAdd.Error()})
+			resp["error"] = errAdd.Error()
+			json.NewEncoder(w).Encode(resp)
+			w.Header().Set("Content-Type", "application/json")
 			return
 		}
 	} else {
-		json.NewEncoder(w).Encode(map[string]string{"error": "Не указан заголовок задачи"})
+		resp["error"] = "Не указан заголовок задачи"
+		json.NewEncoder(w).Encode(resp)
+		w.Header().Set("Content-Type", "application/json")
 		return
 	}
 }
 func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
+	resp := make(map[string]string)
 	search := r.URL.Query().Get("search")
 	if search != "" {
 		input := function.SearcCheck(search)
-		searchData := h.Repo.SearchTask(input)
+		searchData, err := h.Repo.SearchTask(input)
+		if err != nil {
+			resp["error"] = err.Error()
+			json.NewEncoder(w).Encode(resp)
+			w.Header().Set("Content-Type", "application/json")
+			return
+		}
 		respSearch := make(map[string][]structurs.Tasks)
 		respSearch["tasks"] = searchData
+		err = json.NewEncoder(w).Encode(respSearch)
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		err := json.NewEncoder(w).Encode(respSearch)
 		if err != nil {
-			respErr := make(map[string]string)
-			respErr["error"] = err.Error()
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			json.NewEncoder(w).Encode(respErr)
+			resp["error"] = err.Error()
+			json.NewEncoder(w).Encode(resp)
+			w.Header().Set("Content-Type", "application/json")
 			return
 		}
 	} else {
@@ -89,12 +100,12 @@ func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
 		if tasks != nil {
 			respTasks := make(map[string][]structurs.Tasks)
 			respTasks["tasks"] = tasks
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			json.NewEncoder(w).Encode(respTasks)
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			if err != nil {
-				respErr := make(map[string]string)
-				respErr["error"] = err.Error()
-				json.NewEncoder(w).Encode(respErr)
+				resp["error"] = err.Error()
+				json.NewEncoder(w).Encode(resp)
+				w.Header().Set("Content-Type", "application/json")
 				return
 			}
 
@@ -102,12 +113,12 @@ func (h Handler) GetTasksSearch(w http.ResponseWriter, r *http.Request) {
 			nulSlais := make([]string, 0)
 			respNil := make(map[string][]string)
 			respNil["tasks"] = nulSlais
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			err := json.NewEncoder(w).Encode(respNil)
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			if err != nil {
-				respErr := make(map[string]string)
-				respErr["error"] = err.Error()
-				json.NewEncoder(w).Encode(respErr)
+				resp["error"] = err.Error()
+				json.NewEncoder(w).Encode(resp)
+				w.Header().Set("Content-Type", "application/json")
 				return
 			}
 		}
@@ -226,7 +237,6 @@ func (h Handler) DeleteTaskID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	errDel := h.Repo.DeleteTaskId(idCheck)
-	fmt.Println("deltask", err)
 	if errDel != nil {
 		resp["error"] = errDel.Error()
 		json.NewEncoder(w).Encode(resp)

@@ -67,7 +67,6 @@ func postJSON(apipath string, values map[string]any, method string) (map[string]
 	)
 
 	body, err := requestJSON(apipath, values, method)
-	fmt.Println("Body in test", string(body))
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +87,7 @@ func TestAddTask(t *testing.T) {
 
 	tbl := []task{
 		{"20240129", "", "", ""},
-		{"20240192", "QwertyZ", "", ""},
+		{"20240192", "Qwerty", "", ""},
 		{"28.01.2024", "Заголовок", "", ""},
 		{"20240112", "Заголовок", "", "w"},
 		{"20240212", "Заголовок", "", "ooops"},

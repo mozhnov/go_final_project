@@ -2,9 +2,7 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 	"go_final_project/structurs"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -20,19 +18,20 @@ type DB struct {
 func NewDBwork(db *sql.DB) DB {
 	return DB{db: db}
 }
-func (s DB) AddDB(DBFile string) {
+func (s DB) AddDB(DBFile string) error {
 	_, err := os.Create(DBFile)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = s.db.Exec("CREATE TABLE IF NOT EXISTS scheduler (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL CHECK(date !=''), title TEXT NOT NULL CHECK(title !=''), comment TEXT, repeat TEXT);")
 	if err != nil {
-		log.Println(err, "create_tablr err")
+		return err
 	}
 	_, err = s.db.Exec("CREATE INDEX ID_Date ON scheduler (date);")
 	if err != nil {
-		log.Println(err, "create index err")
+		return err
 	}
+	return nil
 }
 func (s DB) CheckTable(DBFile string) error {
 	_, err := s.db.Query("SELECT * FROM scheduler;")
@@ -41,15 +40,16 @@ func (s DB) CheckTable(DBFile string) error {
 	}
 	return nil
 }
-func (s DB) CreateTable(DBFile string) {
+func (s DB) CreateTable(DBFile string) error {
 	_, err := s.db.Exec("CREATE TABLE IF NOT EXISTS scheduler (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL CHECK(date !=''), title TEXT NOT NULL CHECK(title !=''), comment TEXT, repeat TEXT);")
 	if err != nil {
-		log.Println(err, "create_tablr err")
+		return err
 	}
 	_, err = s.db.Exec("CREATE INDEX ID_Date ON scheduler (date);")
 	if err != nil {
-		log.Println(err, "create index err")
+		return err
 	}
+	return nil
 }
 func (s DB) AddTask(t structurs.Task) (int, error) {
 	res, err := s.db.Exec("INSERT INTO scheduler (date, title, comment, repeat) VALUES (:date, :title, :comment, :repeat);",
@@ -57,7 +57,6 @@ func (s DB) AddTask(t structurs.Task) (int, error) {
 		sql.Named("title", t.Title),
 		sql.Named("comment", t.Comment),
 		sql.Named("repeat", t.Repeat))
-	fmt.Println("metod AddTask", err)
 	if err != nil {
 		return 0, err
 	}
@@ -65,9 +64,10 @@ func (s DB) AddTask(t structurs.Task) (int, error) {
 	return int(id), nil
 }
 func (s DB) GetTasks() ([]structurs.Tasks, error) {
+	var errStr []structurs.Tasks
 	rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date DESC;")
 	if err != nil {
-		return []structurs.Tasks{}, err
+		return errStr, err
 	}
 	defer rows.Close()
 
@@ -76,14 +76,14 @@ func (s DB) GetTasks() ([]structurs.Tasks, error) {
 		p := structurs.Tasks{}
 		err := rows.Scan(&p.Id, &p.Date, &p.Title, &p.Comment, &p.Repeat)
 		if err != nil {
-			return []structurs.Tasks{}, err
+			return errStr, err
 		}
 
 		res = append(res, p)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []structurs.Tasks{}, err
+		return errStr, err
 	}
 
 	return res, nil
@@ -95,12 +95,12 @@ func (s DB) GetTaskId(id string) (structurs.Tasks, error) {
 	err := rows.Scan(&p.Id, &p.Date, &p.Title, &p.Comment, &p.Repeat)
 	return p, err
 }
-func (s DB) SearchTask(search string) []structurs.Tasks {
-	input := search
+func (s DB) SearchTask(input string) ([]structurs.Tasks, error) {
+	var errStr []structurs.Tasks
 	rows, err := s.db.Query("SELECT * FROM scheduler WHERE id LIKE CONCAT('%', :input, '%') OR date LIKE CONCAT('%', :input, '%') OR title LIKE CONCAT('%', :input, '%') OR comment LIKE CONCAT('%', :input, '%') ORDER BY date DESC;",
 		sql.Named("input", input))
 	if err != nil {
-		log.Println(err)
+		return errStr, err
 	}
 	defer rows.Close()
 
@@ -110,21 +110,20 @@ func (s DB) SearchTask(search string) []structurs.Tasks {
 
 		err := rows.Scan(&p.Id, &p.Date, &p.Title, &p.Comment, &p.Repeat)
 		if err != nil {
-			log.Println(err)
+			return errStr, err
 		}
 
 		res = append(res, p)
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Println(err)
+		return errStr, err
 	}
 
-	return res
+	return res, nil
 
 }
 func (s DB) PutTaskId(t structurs.Tasks) error {
-	fmt.Println("putrepozitory", "id", t.Id, "date", t.Date, t.Title, t.Comment, t.Repeat)
 	_, err := s.db.Exec("UPDATE scheduler SET date=:date, title=:title, comment=:comment, repeat=:repeat WHERE id=:id;",
 		sql.Named("id", t.Id),
 		sql.Named("date", t.Date),
@@ -139,7 +138,6 @@ func (s DB) PutTaskId(t structurs.Tasks) error {
 func (s DB) DeleteTaskId(id string) error {
 	_, err := s.db.Exec("DELETE FROM scheduler WHERE id = :id;",
 		sql.Named("id", id))
-	fmt.Println("deltaskrep", err)
 	if err != nil {
 		return err
 	}
@@ -202,6 +200,5 @@ func (s DB) NextDate(now string, date string, repeat string) (string, error) {
 		}
 	}
 	year := yearAdd.Format(format)
-	fmt.Println("year", year)
 	return year, err
 }
