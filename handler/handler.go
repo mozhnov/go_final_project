@@ -192,7 +192,6 @@ func (h Handler) DoneTaskId(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 		}
 	} else {
-		fmt.Println("nowh", now, "dateh", date, "repiath", repeat)
 		data, err := h.Repo.NextDate(now, date, repeat)
 		if err != nil {
 			resp["error"] = err.Error()
@@ -208,22 +207,35 @@ func (h Handler) DoneTaskId(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			return
 
+		} else {
+			out := &structurs.Empty{}
+			json.NewEncoder(w).Encode(out)
+			w.Header().Set("Content-Type", "application/json")
 		}
+
 	}
 }
 func (h Handler) DeleteTaskID(w http.ResponseWriter, r *http.Request) {
+	resp := make(map[string]string)
 	id := r.URL.Query().Get("id")
-	err := h.Repo.DeleteTaskId(id)
+	idCheck, err := function.IdCheck(id)
 	if err != nil {
-		respErr := make(map[string]string)
-		respErr["error"] = "Не удалилась"
+		resp["error"] = err.Error()
+		json.NewEncoder(w).Encode(resp)
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(w).Encode(respErr)
-		fmt.Println("err", respErr)
+		return
+	}
+	errDel := h.Repo.DeleteTaskId(idCheck)
+	fmt.Println("deltask", err)
+	if errDel != nil {
+		resp["error"] = errDel.Error()
+		json.NewEncoder(w).Encode(resp)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		return
 	} else {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		var out structurs.Empty
+		out := &structurs.Empty{}
 		json.NewEncoder(w).Encode(out)
+		w.Header().Set("Content-Type", "application/json")
 	}
 }
 func (h Handler) NextData(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,5 @@
 package structurs
 
-// Database package
 import (
 	_ "github.com/mattn/go-sqlite3"
 

@@ -139,7 +139,7 @@ func (s DB) PutTaskId(t structurs.Tasks) error {
 func (s DB) DeleteTaskId(id string) error {
 	_, err := s.db.Exec("DELETE FROM scheduler WHERE id = :id;",
 		sql.Named("id", id))
-
+	fmt.Println("deltaskrep", err)
 	if err != nil {
 		return err
 	}
