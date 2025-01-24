@@ -65,7 +65,7 @@ func (s DB) AddTask(t structurs.Task) (int, error) {
 }
 func (s DB) GetTasks() ([]structurs.Tasks, error) {
 	var errStr []structurs.Tasks
-	rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date DESC;")
+	rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date ASC;")
 	if err != nil {
 		return errStr, err
 	}
