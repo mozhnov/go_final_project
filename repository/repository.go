@@ -33,14 +33,14 @@ func (s DB) AddDB(DBFile string) error {
 	}
 	return nil
 }
-func (s DB) CheckTable(DBFile string) error {
+func (s DB) CheckTable() error {
 	_, err := s.db.Query("SELECT * FROM scheduler;")
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (s DB) CreateTable(DBFile string) error {
+func (s DB) CreateTable() error {
 	_, err := s.db.Exec("CREATE TABLE IF NOT EXISTS scheduler (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL CHECK(date !=''), title TEXT NOT NULL CHECK(title !=''), comment TEXT, repeat TEXT);")
 	if err != nil {
 		return err

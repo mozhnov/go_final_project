@@ -15,7 +15,7 @@ import (
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Some error occured. Err: %s", err)
+		log.Fatalf("Some error occured. Err: %v", err)
 	}
 
 	DBFile := os.Getenv("TODO_DBFILE")
@@ -26,11 +26,13 @@ func init() {
 	if _, err := os.Stat(DBFile); err != nil {
 		if os.IsNotExist(err) {
 			repo.AddDB(DBFile)
+		} else {
+			log.Fatalf("error while stat %s: %v", DBFile, err)
 		}
 	} else {
-		err := repo.CheckTable(DBFile)
+		err := repo.CheckTable()
 		if err != nil {
-			repo.CreateTable(DBFile)
+			repo.CreateTable()
 		}
 	}
 }
@@ -40,19 +42,19 @@ func main() {
 	defer db.Close()
 
 	repo := repository.NewDBwork(db)
-	handler := handler.NewHandler(repo)
+	handlerfunc := handler.NewHandler(repo)
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Some error occured. Err: %s", err)
+		log.Fatalf("Some error occured. Err: %v", err)
 	}
 	web_server_port := os.Getenv("TODO_PORT")
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir("./web")))
-	mux.HandleFunc("/api/task", handler.PostGetPutDeleteTask)
-	mux.HandleFunc("/api/tasks", handler.GetTasksSearch)
-	mux.HandleFunc("/api/task/done", handler.DoneTaskId)
-	mux.HandleFunc("/api/nextdate", handler.NextData)
+	mux.HandleFunc("/api/task", handlerfunc.PostGetPutDeleteTask)
+	mux.HandleFunc("/api/tasks", handlerfunc.GetTasksSearch)
+	mux.HandleFunc("/api/task/done", handlerfunc.DoneTaskId)
+	mux.HandleFunc("/api/nextdate", handlerfunc.NextData)
 	err = http.ListenAndServe(web_server_port, mux)
 	if err != nil {
 		panic(err)

@@ -23,13 +23,11 @@ func DataCheck(input string) (string, error) {
 		format := "20060102"
 		date, err := time.Parse(format, input)
 		if err != nil {
-			log.Println(err)
 			return "", err
 		}
 		a := date.Format("20060102")
 		if a == "00010101" {
-			log.Println(err)
-			return "", nil
+			return "", err
 		} else {
 			timeNow := time.Now()
 			dateNow := timeNow.Format("20060102")
@@ -99,7 +97,7 @@ func DBconnect() *sql.DB {
 	DBFile := os.Getenv("TODO_DBFILE")
 	db, err := sql.Open("sqlite", DBFile)
 	if err != nil {
-		log.Println(err)
+		log.Fatalf("Some error occured. Err: %v", err)
 	}
 	return db
 }
