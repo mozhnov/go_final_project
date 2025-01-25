@@ -10,5 +10,5 @@
 если научите.
 Визуально приложение работает. 
 ссылка:  
-docker pull mozhnov/go_final_project:v1.0.2
-docker run -d -p 7540:7540  mozhnov/go_final_project:v1.0.2
+docker pull mozhnov/go_final_project:v1.0.3
+docker run -d -p 7540:7540  mozhnov/go_final_project:v1.0.3
