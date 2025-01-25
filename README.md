@@ -9,6 +9,6 @@
 тесты не проходят не могу понять причину. Был бы очень признателен 
 если научите.
 Визуально приложение работает. 
-ссылка:  docker run -d -p 7540:7540  mozhnov/final_app:1.0.4
-
-
+ссылка:  
+docker pull mozhnov/go_final_project:v1.0.0
+docker run -d -p 7540:7540  mozhnov/go_final_project:v1.0.0
