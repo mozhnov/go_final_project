@@ -1,7 +1,6 @@
 name: go_final_project
 on: 
    push:
-     branches: [FinalProject]
      tags:
        - 'v*'
 jobs:
