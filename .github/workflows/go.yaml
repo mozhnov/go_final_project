@@ -1,7 +1,6 @@
 name: go_final_project
 on: 
    push:
-     branches: ["FinalProject"]
      tags:
        - 'v*'
 jobs:
@@ -22,14 +21,10 @@ jobs:
     container: golang:1.23.3
     steps:
       - uses: actions/checkout@v4
-
-      - name: Run Unit Tests
-        run: go test
-
-      - name: Vet
+      - name: Vet Tests
         run: |
           go vet ./...
-      - name: tests
+      - name: Run Unit Tests
         run: |
           go run main.go&
           go test ./tests/...
