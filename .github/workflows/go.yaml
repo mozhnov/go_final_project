@@ -29,6 +29,9 @@ jobs:
       - name: Vet
         run: |
           go vet ./...
+          go run main.go&
+          go test ./tests/...
+          pkill main
 
   deploy:
     name: Push Docker image to Docker Hub
