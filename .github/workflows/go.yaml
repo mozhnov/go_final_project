@@ -72,10 +72,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
-      - name: stop and remove befor conteiner
-        run: |
-          docker stop deploy
-          docker rm deploy
       - name: Docker Pull Image
         run: docker pull mozhnov/go_final_project:latest
       - name: Run Image
