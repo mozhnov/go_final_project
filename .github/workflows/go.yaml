@@ -30,7 +30,6 @@ jobs:
   delivery:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-    environment: staging
     needs: test
     if: startsWith(github.ref, 'refs/tags')
     steps:
