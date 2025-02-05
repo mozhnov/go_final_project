@@ -76,5 +76,7 @@ jobs:
         run: |
           docker stop deploy
           docker rm deploy
+      - name: Docker Pull Image
+        run: docker pull mozhnov/go_final_project:latest
       - name: Run Image
-        run: docker run -d -p 7540:7540 --name deploy mozhnov/go_final_project:${{ steps.meta.outputs.tags }}
+        run: docker run -d -p 7540:7540 --name deploy mozhnov/go_final_project:latest
