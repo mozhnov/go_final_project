@@ -74,7 +74,7 @@ jobs:
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
       - name: stop and remove befor conteiner
         run: |
-          - docker stop deploy
-          - docker rm deploy
+          docker stop deploy
+          docker rm deploy
       - name: Run Image
         run: docker run -d -p 7540:7540 --name deploy mozhnov/go_final_project:latest
