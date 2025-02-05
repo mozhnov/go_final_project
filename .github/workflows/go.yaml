@@ -75,8 +75,6 @@ jobs:
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5.5.1
-        with:
-          images: mozhnov/go_final_project
       - name: stop and remove befor conteiner
         run: |
           docker stop deploy
